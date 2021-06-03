@@ -1,12 +1,13 @@
 """Registry mixin.
 """
 
-from typing import Any
-
+from typing import Any, Optional
 from collections import defaultdict
 
+from core.aliases import Tags
 
-class RegistryMixin:
+
+class Registry:
     """Registry to adding items by special tag_id, based on their class
     and amount of items of this class.
     """
@@ -29,3 +30,14 @@ class RegistryMixin:
         """Get item from registry by name.
         """
         return cls.REGISTRY[tag_id]
+
+    @staticmethod
+    def get_id_from_tags(tags: Tags) -> Optional[str]:
+        """Get TagId from tags, if it exists.
+        Return None, if not found.
+        """
+        for tag in tags:
+            if tag.startswith('id-'):
+                return tag
+        else:
+            return None

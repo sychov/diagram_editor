@@ -6,7 +6,7 @@ import tkinter as tk
 from core.aliases import Coords
 from core.enums import Gamma, Ability, Type
 from core.interfaces import Draggable, Connectible, Selectable, Connector
-from core.registry import RegistryMixin
+from core.registry import Registry
 
 
 class Node(Draggable, Connectible, Selectable):
@@ -23,7 +23,7 @@ class Node(Draggable, Connectible, Selectable):
         header_height = 32
 
         self._canvas = canvas
-        self._id = RegistryMixin.add(self)
+        self._id = Registry.add(self)
         # TODO: change later
         self._text_head = 'Hello'
         self._text_desc = 'My name is Alex\nWhat is your name?'
@@ -41,7 +41,7 @@ class Node(Draggable, Connectible, Selectable):
             width=self.BORDER_WIDTH,
             outline='black',
             fill=gamma.value.main_color,
-            tags=node_tags + (f'{self._id}-main',)
+            tags=node_tags
         )
         self._inner_rect = canvas.create_rectangle(
             x + self.BORDER_WIDTH,

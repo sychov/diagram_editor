@@ -128,3 +128,4 @@ dmypy.json
 
 # Pycharm
 .idea/
+/diag.psproj

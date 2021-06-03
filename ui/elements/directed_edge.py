@@ -6,7 +6,7 @@ import tkinter as tk
 from core.aliases import BezierCoords
 from core.interfaces import Connector, Connectible, Selectable
 from core.enums import Type, Ability
-from core.registry import RegistryMixin
+from core.registry import Registry
 
 
 class DirectedEdge(Connector, Selectable):
@@ -20,7 +20,7 @@ class DirectedEdge(Connector, Selectable):
                  target: Connectible):
         """Init.
         """
-        self._id = RegistryMixin.add(self)
+        self._id = Registry.add(self)
         self._canvas = canvas
 
         connector_tags = (Ability.SELECT, Type.LINE, self._id)

@@ -24,8 +24,11 @@ class Main:
             f'{self.WINDOW_WIDTH}x{self.WINDOW_HEIGHT}+100+100'
         )
 
-        self._toolbar = Toolbar(self._root, height=self.WINDOW_HEIGHT)
-        self._workspace = Workspace(self._root)
+        self._toolbar = Toolbar(self._root)
+        self._workspace = Workspace(
+            self._root,
+            pop_selection_from_toolbar_callback=self._toolbar.pop_selected
+        )
 
         # just for test
         self._workspace.test()

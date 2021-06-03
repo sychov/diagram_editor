@@ -2,14 +2,15 @@
 """
 
 import tkinter as tk
-from typing import Union, Optional
+from typing import Union, Optional, Callable
 
-from core.aliases import Coords, Tags
+from core.aliases import Coords
 from core.enums import Gamma, Ability
 from core.interfaces import Draggable, Selectable
-from core.registry import RegistryMixin
+from core.registry import Registry
 
 from ui.elements.node import Node
+from ui.elements.icon import Icon
 from ui.elements.directed_edge import DirectedEdge
 
 
@@ -25,12 +26,16 @@ class Workspace:
     COLOR_GRID = '#505050'
     COLOR_SELECT = '#A0D500'
 
-    def __init__(self, master: Union[tk.Widget, tk.Tk]):
+    def __init__(self,
+                 master: Union[tk.Widget, tk.Tk],
+                 pop_selection_from_toolbar_callback: Callable[[], Icon]):
         """Init.
         """
         self._dragged_item: Optional[Draggable] = None
         self._selected_item: Optional[Selectable] = None
         self._last_coords: Coords
+
+        self._pop_selection_from_toolbar = pop_selection_from_toolbar_callback
 
         # 1. Create workspace:
 
@@ -86,17 +91,6 @@ class Workspace:
             lambda e: setattr(self, '_dragged_item', None)
         )
 
-    @staticmethod
-    def _get_tag_id(tags: Tags) -> Optional[str]:
-        """Get TagId from tags, if it exists.
-        Return None, if not found.
-        """
-        for tag in tags:
-            if tag.startswith('id-'):
-                return tag
-        else:
-            return None
-
     def _get_absolute_coords(self, x: int, y: int) -> Coords:
         """Get absolute Canvas coords.
         This method should be used to transfer event's coords (taken from
@@ -110,6 +104,11 @@ class Workspace:
         """Callback. Mouse button-1 was down.
         """
         x, y = self._get_absolute_coords(event.x, event.y)
+
+        toolbar_icon = self._pop_selection_from_toolbar()
+        if toolbar_icon:
+            Node(self._canvas, x - 10, y - 10, toolbar_icon.gamma)
+
         id_ = self._canvas.find_closest(x, y, halo=3)
         tags = self._canvas.gettags(id_)
 
@@ -120,8 +119,8 @@ class Workspace:
         if Ability.SELECT not in tags:
             return
 
-        tag_id = self._get_tag_id(tags)
-        item = RegistryMixin.get(tag_id)
+        tag_id = Registry.get_id_from_tags(tags)
+        item = Registry.get(tag_id)
         item.draw_selection()
         self._selected_item = item
 
