@@ -5,8 +5,8 @@ import tkinter as tk
 from typing import Union, Optional, Callable
 
 from core.aliases import Coords
-from core.enums import Gamma, Ability
-from core.interfaces import Draggable, Selectable
+from core.enums import Gamma, Ability, TkEvents
+from core.interfaces import Draggable, Selectable, Removable
 from core.registry import Registry
 
 from ui.elements.node import Node
@@ -18,8 +18,8 @@ class Workspace:
     """Diagram workspace class.
     A place of Nodes and Connectors operations.
     """
-    CANVAS_WIDTH = 3617
-    CANVAS_HEIGHT = 2401
+    CANVAS_WIDTH = 3585
+    CANVAS_HEIGHT = 2305
     EMPTY_FIELD_WIDTH = 50
 
     COLOR_BG = '#3C3C3C'
@@ -59,11 +59,11 @@ class Workspace:
 
         # 2. Draw workspaces grid:
 
-        for y in range(0, self.CANVAS_HEIGHT, 32):
+        for y in range(0, self.CANVAS_HEIGHT, 128):
             self._canvas.create_line(
                 0, y, self.CANVAS_WIDTH, y, fill=self.COLOR_GRID
             )
-        for x in range(0, self.CANVAS_WIDTH, 32):
+        for x in range(0, self.CANVAS_WIDTH, 128):
             self._canvas.create_line(
                 x, 0, x, self.CANVAS_HEIGHT, fill=self.COLOR_GRID
             )
@@ -71,24 +71,28 @@ class Workspace:
         # 3. Bind events:
 
         self._canvas.bind(
-            "<ButtonPress-3>",
+            TkEvents.MOUSE_RIGHT_BUTTON_DOWN,
             lambda e: self._canvas.scan_mark(e.x, e.y)
         )
         self._canvas.bind(
-            "<B3-Motion>",
+            TkEvents.MOUSE_RIGHT_BUTTON_DRAG,
             lambda e: self._canvas.scan_dragto(e.x, e.y, gain=1)
         )
         self._canvas.bind(
-            "<ButtonPress-1>",
+            TkEvents.MOUSE_LEFT_BUTTON_DOWN,
             self._callback_mouse_1_down
         )
         self._canvas.bind(
-            "<B1-Motion>",
+            TkEvents.MOUSE_LEFT_BUTTON_DRAG,
             self._callback_mouse_move
         )
         self._canvas.bind(
-            "<ButtonRelease-1>",
+            TkEvents.MOUSE_LEFT_BUTTON_RELEASE,
             lambda e: setattr(self, '_dragged_item', None)
+        )
+        self._canvas.bind(
+            TkEvents.KEY_PRESSED,
+            self._callback_key_pressed
         )
 
     def _get_absolute_coords(self, x: int, y: int) -> Coords:
@@ -103,6 +107,7 @@ class Workspace:
     def _callback_mouse_1_down(self, event: tk.Event):
         """Callback. Mouse button-1 was down.
         """
+        self._canvas.focus_set()
         x, y = self._get_absolute_coords(event.x, event.y)
 
         toolbar_icon = self._pop_selection_from_toolbar()
@@ -138,6 +143,14 @@ class Workspace:
             x0, y0 = self._last_coords
             self._dragged_item.move(x - x0, y - y0)
             self._last_coords = x, y
+
+    def _callback_key_pressed(self, event: tk.Event):
+        """Callback. Pressed some key.
+        """
+        if event.keysym == 'Delete' and self._selected_item \
+                and isinstance(self._selected_item, Removable):
+            self._selected_item.delete()
+            self._selected_item = None
 
     def test(self):
         """TODO: remove later.

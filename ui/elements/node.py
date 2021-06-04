@@ -5,14 +5,16 @@ import tkinter as tk
 
 from core.aliases import Coords
 from core.enums import Gamma, Ability, Type
-from core.interfaces import Draggable, Connectible, Selectable, Connector
+from core.interfaces import Draggable, Connectible, Selectable, Connector, \
+    Removable
 from core.registry import Registry
 
 
-class Node(Draggable, Connectible, Selectable):
+class Node(Draggable, Connectible, Selectable, Removable):
     """Workspaces node class.
     """
     BORDER_WIDTH = 2
+    CONNECTION_AREA_RADIUS = 12
 
     def __init__(self, canvas: tk.Canvas, x: int, y: int, gamma: Gamma):
         """Init.
@@ -23,7 +25,9 @@ class Node(Draggable, Connectible, Selectable):
         header_height = 32
 
         self._canvas = canvas
+        self._gamma = gamma
         self._id = Registry.add(self)
+
         # TODO: change later
         self._text_head = 'Hello'
         self._text_desc = 'My name is Alex\nWhat is your name?'
@@ -31,7 +35,7 @@ class Node(Draggable, Connectible, Selectable):
         self._input_connectors = []
         self._output_connectors = []
 
-        node_tags = (Ability.DRAG, Ability.SELECT, Type.NODE, self._id)
+        self._node_tags = (Ability.DRAG, Ability.SELECT, Type.NODE, self._id)
 
         self._main_rect = canvas.create_rectangle(
             x,
@@ -41,7 +45,7 @@ class Node(Draggable, Connectible, Selectable):
             width=self.BORDER_WIDTH,
             outline='black',
             fill=gamma.value.main_color,
-            tags=node_tags
+            tags=self._node_tags
         )
         self._inner_rect = canvas.create_rectangle(
             x + self.BORDER_WIDTH,
@@ -50,7 +54,7 @@ class Node(Draggable, Connectible, Selectable):
             y + height - self.BORDER_WIDTH,
             width=0,
             fill=gamma.value.secondary_color,
-            tags=node_tags,
+            tags=self._node_tags,
         )
         self._head_text = canvas.create_text(
             x + width // 2,
@@ -58,7 +62,7 @@ class Node(Draggable, Connectible, Selectable):
             fill='white',
             text=self._text_head,
             font=('Verdana', '12'),
-            tags=node_tags,
+            tags=self._node_tags,
         )
         self._inner_text = canvas.create_text(
             x + width // 2,
@@ -66,8 +70,9 @@ class Node(Draggable, Connectible, Selectable):
             fill='black',
             text=self._text_desc,
             font=('Verdana', '12'),
-            tags=node_tags,
+            tags=self._node_tags,
         )
+        self._output_point_area = None
 
     def __repr__(self):
         """Repr.
@@ -101,14 +106,12 @@ class Node(Draggable, Connectible, Selectable):
     def remove_input_connector(self, connector: Connector):
         """Remove connector for input.
         """
-        if connector in self._input_connectors:
-            self._input_connectors.remove(connector)
+        self._input_connectors.remove(connector)
 
     def remove_output_connector(self, connector: Connector):
         """Remove connector for output.
         """
-        if connector in self._input_connectors:
-            self._output_connectors.remove(connector)
+        self._output_connectors.remove(connector)
 
     # ---------------------- DRAGGABLE -------------------------- #
 
@@ -132,6 +135,19 @@ class Node(Draggable, Connectible, Selectable):
             width=3,
             dash=(30,)
         )
+
+        center_x, center_y = self.get_output_point()
+
+        self._output_point_area = self._canvas.create_oval(
+            center_x - self.CONNECTION_AREA_RADIUS,
+            center_y - self.CONNECTION_AREA_RADIUS,
+            center_x + self.CONNECTION_AREA_RADIUS,
+            center_y + self.CONNECTION_AREA_RADIUS,
+            width=3,
+            fill=self._gamma.value.secondary_color,
+            outline=self._gamma.value.main_color,
+            tags=self._node_tags
+        )
         self._canvas.tag_raise(self._id)
 
     def clear_selection(self):
@@ -143,3 +159,15 @@ class Node(Draggable, Connectible, Selectable):
             width=2,
             dash=()
         )
+        self._canvas.delete(self._output_point_area)
+        self._output_point_area = None
+
+    # ---------------------- REMOVABLE ------------------------- #
+
+    def delete(self):
+        """Delete edge from canvas and registry.
+        """
+        for q in self._input_connectors + self._output_connectors:
+            q.delete()
+        self._canvas.delete(self._id)
+        Registry.delete(self._id)

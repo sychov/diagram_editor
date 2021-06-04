@@ -4,12 +4,12 @@
 import tkinter as tk
 
 from core.aliases import BezierCoords
-from core.interfaces import Connector, Connectible, Selectable
+from core.interfaces import Connector, Connectible, Selectable, Removable
 from core.enums import Type, Ability
 from core.registry import Registry
 
 
-class DirectedEdge(Connector, Selectable):
+class DirectedEdge(Connector, Selectable, Removable):
     """Base Connector realization.
     Directed arrow, from target to source.
     """
@@ -22,6 +22,8 @@ class DirectedEdge(Connector, Selectable):
         """
         self._id = Registry.add(self)
         self._canvas = canvas
+        self._source = source
+        self._target = target
 
         connector_tags = (Ability.SELECT, Type.LINE, self._id)
 
@@ -99,3 +101,13 @@ class DirectedEdge(Connector, Selectable):
             fill=self.COLOR,
             dash=()
         )
+
+    # ---------------------- REMOVABLE ------------------------- #
+
+    def delete(self):
+        """Delete edge from canvas and registry.
+        """
+        self._source.remove_output_connector(self)
+        self._target.remove_input_connector(self)
+        self._canvas.delete(self._id)
+        Registry.delete(self._id)

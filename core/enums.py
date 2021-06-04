@@ -40,3 +40,17 @@ class Ability:
     """
     DRAG = 'draggable'
     SELECT = 'selectable'
+
+
+class TkEvents:
+    """Used Tk events.
+    """
+    KEY_PRESSED = '<KeyPress>'
+    MOUSE_LEFT_BUTTON_CLICK = '<Button-1>'
+    MOUSE_LEFT_BUTTON_DOWN = '<ButtonPress-1>'
+    MOUSE_LEFT_BUTTON_RELEASE = '<ButtonRelease-1>'
+    MOUSE_LEFT_BUTTON_DRAG = '<B1-Motion>'
+    MOUSE_RIGHT_BUTTON_DOWN = '<ButtonPress-3>'
+    MOUSE_RIGHT_BUTTON_DRAG = '<B3-Motion>'
+
+

@@ -4,7 +4,7 @@
 import tkinter as tk
 from typing import Union, Optional
 
-from core.enums import Gamma, Ability
+from core.enums import Gamma, Ability, TkEvents
 from core.registry import Registry
 
 from ui.elements.icon import Icon
@@ -15,7 +15,7 @@ class Toolbar:
     """
     TOOLBAR_WIDTH = 60
     TOOLBAR_HEIGHT = 2000
-    COLOR_BG = '#3C3C3C'
+    COLOR_BG = '#303030'
     COLOR_SELECT = '#A0D500'
 
     def __init__(self, master: Union[tk.Widget, tk.Tk]):
@@ -34,7 +34,10 @@ class Toolbar:
             highlightthickness=0
         )
 
-        self._canvas.bind("<Button-1>", self._callback_mouse_1)
+        self._canvas.bind(
+            TkEvents.MOUSE_LEFT_BUTTON_CLICK,
+            self._callback_mouse_1
+        )
         self._canvas.pack(expand=tk.Y, fill=tk.BOTH)
 
         # --------------- JUST FOR TESESING ---------------- #

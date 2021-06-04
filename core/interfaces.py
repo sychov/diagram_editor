@@ -86,3 +86,13 @@ class Connectible(ABC):
         """Get ending point coords for connector.
         """
         pass
+
+
+class Removable(ABC):
+    """Workspace item, that can be deleted.
+    """
+    @abstractmethod
+    def delete(self):
+        """Remove item.
+        """
+        pass
