@@ -5,7 +5,7 @@ import tkinter as tk
 
 from core.aliases import BezierCoords
 from core.interfaces import Connector, Connectible, Selectable, Removable
-from core.enums import Type, Ability
+from core.enums import Ability
 from core.registry import Registry
 
 
@@ -25,7 +25,7 @@ class DirectedEdge(Connector, Selectable, Removable):
         self._source = source
         self._target = target
 
-        connector_tags = (Ability.SELECT, Type.LINE, self._id)
+        connector_tags = (Ability.SELECT, self._id)
 
         x1, y1 = source.get_output_point()
         x2, y2 = target.get_input_point()
@@ -64,6 +64,12 @@ class DirectedEdge(Connector, Selectable, Removable):
         return f'<Connector line ID="{self._id}">'
 
     # ---------------------- CONNECTOR ------------------------- #
+
+    @property
+    def source(self):
+        """Source of connector.
+        """
+        return self._source
 
     def move_target_point(self, delta_x: int, delta_y: int):
         """Move connector's target point.

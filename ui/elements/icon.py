@@ -3,7 +3,7 @@
 
 import tkinter as tk
 
-from core.enums import Gamma, Ability, Type
+from core.enums import Gamma, Ability
 from core.interfaces import Selectable
 from core.registry import Registry
 

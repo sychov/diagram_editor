@@ -32,6 +32,14 @@ class Registry:
         return cls.REGISTRY[tag_id]
 
     @classmethod
+    def get_tag_id(cls, item: Any) -> Optional[str]:
+        """Get item from registry by name.
+        """
+        for key, value in cls.REGISTRY.items():
+            if value == item:
+                return key
+
+    @classmethod
     def delete(cls, tag_id: str) -> Any:
         """Get item from registry by name.
         """

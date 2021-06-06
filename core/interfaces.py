@@ -35,6 +35,13 @@ class Selectable(ABC):
 class Connector(ABC):
     """Workspace item, that can connect Connectible items.
     """
+    @property
+    @abstractmethod
+    def source(self) -> 'Connectible':
+        """
+        """
+        pass
+
     @abstractmethod
     def move_target_point(self, delta_x: int, delta_y: int):
         """Move connector's target point.
@@ -48,8 +55,31 @@ class Connector(ABC):
         pass
 
 
-class Connectible(ABC):
+class Targetable(ABC):
+    """Workspace item, that can be targeted with the temporary connector.
+    """
+    @abstractmethod
+    def turn_highlight_on(self):
+        """Put highlight to the item.
+        """
+        pass
+
+    @abstractmethod
+    def turn_highlight_off(self):
+        """Remove highlight to the item.
+        """
+        pass
+
+    @abstractmethod
+    def is_already_connected_with(self, source: 'Connectible'):
+        """Check, if the item is already connected with the source.
+        """
+        pass
+
+
+class Connectible(Targetable):
     """Workspace item, that can be connected with others trough Connector.
+    Also, can be target for temporary connector.
     """
     @abstractmethod
     def add_input_connector(self, connector: Connector):

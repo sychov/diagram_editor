@@ -1,6 +1,16 @@
 """Typing aliases.
 """
 
+import tkinter as tk
+
+
+# Tk Event alias (need to avoid warnings about absent attributes in Event)
+class TkEvent(tk.Event):
+    x: int
+    y: int
+    keysym: str
+
+
 # Coordinates pair: x, y:
 Coords = tuple[int, int]
 

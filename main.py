@@ -30,9 +30,6 @@ class Main:
             pop_selection_from_toolbar_callback=self._toolbar.pop_selected
         )
 
-        # just for test
-        self._workspace.test()
-
     def run(self):
         """Run application.
         """

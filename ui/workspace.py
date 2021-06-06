@@ -4,14 +4,15 @@
 import tkinter as tk
 from typing import Union, Optional, Callable
 
-from core.aliases import Coords
-from core.enums import Gamma, Ability, TkEvents
-from core.interfaces import Draggable, Selectable, Removable
+from core.aliases import Coords, TkEvent
+from core.enums import Ability, TkEvents
+from core.interfaces import Draggable, Selectable, Removable, Connectible
 from core.registry import Registry
 
 from ui.elements.node import Node
 from ui.elements.icon import Icon
 from ui.elements.directed_edge import DirectedEdge
+from ui.elements.temporary_connector import TemporaryConnector
 
 
 class Workspace:
@@ -33,6 +34,8 @@ class Workspace:
         """
         self._dragged_item: Optional[Draggable] = None
         self._selected_item: Optional[Selectable] = None
+        self._temp_connector: Optional[TemporaryConnector] = None
+        self._current_target: Optional[Connectible] = None
         self._last_coords: Coords
 
         self._pop_selection_from_toolbar = pop_selection_from_toolbar_callback
@@ -84,11 +87,11 @@ class Workspace:
         )
         self._canvas.bind(
             TkEvents.MOUSE_LEFT_BUTTON_DRAG,
-            self._callback_mouse_move
+            self._callback_mouse_1_drag
         )
         self._canvas.bind(
             TkEvents.MOUSE_LEFT_BUTTON_RELEASE,
-            lambda e: setattr(self, '_dragged_item', None)
+            self._callback_mouse_1_up
         )
         self._canvas.bind(
             TkEvents.KEY_PRESSED,
@@ -104,67 +107,136 @@ class Workspace:
         y = self._canvas.canvasy(y)
         return x, y
 
-    def _callback_mouse_1_down(self, event: tk.Event):
+    def _callback_mouse_1_down(self, event: TkEvent):
         """Callback. Mouse button-1 was down.
         """
         self._canvas.focus_set()
         x, y = self._get_absolute_coords(event.x, event.y)
+        self._last_coords = x, y
 
+        # Check, if some icon on toolbar was previously selected.
+        # Create a new element, if it was.
         toolbar_icon = self._pop_selection_from_toolbar()
         if toolbar_icon:
             Node(self._canvas, x - 10, y - 10, toolbar_icon.gamma)
 
         id_ = self._canvas.find_closest(x, y, halo=3)
         tags = self._canvas.gettags(id_)
-
         if self._selected_item:
+            if Ability.CONNECT_SOURCE in tags:
+                # Start temporary connector flow, instead of selection/drag.
+                self._temp_connector = TemporaryConnector(
+                    self._canvas,
+                    self._selected_item
+                )
+                return
+
             self._selected_item.clear_selection()
             self._selected_item = None
 
-        if Ability.SELECT not in tags:
+        if Ability.SELECT in tags:
+            tag_id = Registry.get_id_from_tags(tags)
+            item = Registry.get(tag_id)
+            item.draw_selection()
+            self._selected_item = item
+
+            if Ability.DRAG in tags:
+                self._dragged_item = item
+
+    def _callback_mouse_1_up(self, _: TkEvent):
+        """Callback. Mouse button-1 was up.
+        """
+        # disable dragging mode
+        self._dragged_item = None
+
+        # that's all, if we have no active temporary connector...
+        if not self._temp_connector:
             return
 
-        tag_id = Registry.get_id_from_tags(tags)
-        item = Registry.get(tag_id)
-        item.draw_selection()
-        self._selected_item = item
+        # ...otherwise, let's create permanent connector, if we have a target.
+        if self._current_target:
+            self._current_target.turn_highlight_off()
+            DirectedEdge(
+                self._canvas,
+                source=self._temp_connector.source,
+                target=self._current_target
+            )
+            self._current_target = None
+            self._canvas.tag_raise(
+                Registry.get_tag_id(self._temp_connector.source)
+            )
 
-        if Ability.DRAG not in tags:
-            return
+        # ...and delete temporary connector in any case.
+        self._temp_connector.delete()
+        self._temp_connector = None
 
-        self._dragged_item = item
-        self._last_coords = x, y
-
-    def _callback_mouse_move(self, event: tk.Event):
+    def _callback_mouse_1_drag(self, event: TkEvent):
         """Callback. Mouse was moved.
         """
-        if self._dragged_item:
-            x, y = self._get_absolute_coords(event.x, event.y)
-            x0, y0 = self._last_coords
-            self._dragged_item.move(x - x0, y - y0)
-            self._last_coords = x, y
+        x, y = self._get_absolute_coords(event.x, event.y)
+        if self._temp_connector:
+            self._move_temporary_connector(x, y)
+        elif self._dragged_item:
+            self._drag_current(x, y)
 
-    def _callback_key_pressed(self, event: tk.Event):
+    def _move_temporary_connector(self, x: int, y: int):
+        """Move target point of temporary connector.
+        """
+        # 1. Move temporary connector:
+        x0, y0 = self._last_coords
+        self._temp_connector.move_target_point(x - x0, y - y0)
+        self._last_coords = x, y
+
+        # 2. Check for possible Connectible obj, target it, if we can:
+        for id_ in self._canvas.find_overlapping(x, y, x + 1, y + 1):
+            tags = self._canvas.gettags(id_)
+            if Ability.CONNECT in tags:
+                tag_id = Registry.get_id_from_tags(tags)
+                item = Registry.get(tag_id)
+                if self._try_to_target_item(item):
+                    return
+
+        # 3. Otherwise, clear
+        if self._current_target:
+            self._current_target.turn_highlight_off()
+            self._current_target = None
+            self._temp_connector.mark_as_target_is_not_found()
+
+    def _try_to_target_item(self, item: Connectible) -> bool:
+        """Try to target some Connectible by curent temporary connector.
+        Returns True, if was success, else False.
+        """
+        # We don't need to target connector's source
+        if item == self._temp_connector.source:
+            return False
+
+        # We don't need to re-target the same node:
+        if item == self._current_target:
+            return True
+
+        # We don't want to target already connected node:
+        if item.is_already_connected_with(self._temp_connector.source):
+            return False
+
+        # Otherwise, let's target this node:
+        if self._current_target:
+            self._current_target.turn_highlight_off()
+        self._current_target = item
+        item.turn_highlight_on()
+        self._temp_connector.mark_as_target_is_found()
+        return True
+
+    def _drag_current(self, x: int, y: int):
+        """Drag previously selected item.
+        """
+        x0, y0 = self._last_coords
+        self._dragged_item.move(x - x0, y - y0)
+        self._last_coords = x, y
+
+    def _callback_key_pressed(self, event: TkEvent):
         """Callback. Pressed some key.
         """
         if event.keysym == 'Delete' and self._selected_item \
                 and isinstance(self._selected_item, Removable):
             self._selected_item.delete()
             self._selected_item = None
-
-    def test(self):
-        """TODO: remove later.
-        Just for test.
-        """
-        n1 = Node(self._canvas, 100, 100, Gamma.BLUE)
-        n2 = Node(self._canvas, 500, 500, Gamma.GREEN)
-        conn1 = DirectedEdge(self._canvas, n1, n2)
-
-        n3 = Node(self._canvas, 200, 200, Gamma.YELLOW)
-        n4 = Node(self._canvas, 400, 400, Gamma.RED)
-        conn2 = DirectedEdge(self._canvas, n3, n4)
-
-        conn3 = DirectedEdge(self._canvas, n2, n4)
-
-        n5 = Node(self._canvas, 400, 400, Gamma.PURPLE)
-        conn2 = DirectedEdge(self._canvas, n3, n5)

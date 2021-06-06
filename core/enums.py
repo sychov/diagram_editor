@@ -28,18 +28,13 @@ Gamma = Enum(
 )
 
 
-class Type:
-    """Workspace object's type.
-    """
-    NODE = 'node'
-    LINE = 'line'
-
-
 class Ability:
     """Workspace canvas item's ability.
     """
     DRAG = 'draggable'
     SELECT = 'selectable'
+    CONNECT = 'connectible'
+    CONNECT_SOURCE = 'connectible_area'
 
 
 class TkEvents:
@@ -52,5 +47,3 @@ class TkEvents:
     MOUSE_LEFT_BUTTON_DRAG = '<B1-Motion>'
     MOUSE_RIGHT_BUTTON_DOWN = '<ButtonPress-3>'
     MOUSE_RIGHT_BUTTON_DRAG = '<B3-Motion>'
-
-

@@ -4,17 +4,19 @@
 import tkinter as tk
 
 from core.aliases import Coords
-from core.enums import Gamma, Ability, Type
+from core.enums import Gamma, Ability
 from core.interfaces import Draggable, Connectible, Selectable, Connector, \
-    Removable
+    Removable, Targetable
 from core.registry import Registry
 
 
-class Node(Draggable, Connectible, Selectable, Removable):
+class Node(Draggable, Connectible, Selectable, Removable, Targetable):
     """Workspaces node class.
     """
     BORDER_WIDTH = 2
     CONNECTION_AREA_RADIUS = 12
+    COLOR_MARKED = '#ADA'
+    COLOR_SELECTED = 'cyan'
 
     def __init__(self, canvas: tk.Canvas, x: int, y: int, gamma: Gamma):
         """Init.
@@ -35,7 +37,12 @@ class Node(Draggable, Connectible, Selectable, Removable):
         self._input_connectors = []
         self._output_connectors = []
 
-        self._node_tags = (Ability.DRAG, Ability.SELECT, Type.NODE, self._id)
+        self._node_tags = (
+            Ability.DRAG,
+            Ability.SELECT,
+            Ability.CONNECT,
+            self._id
+        )
 
         self._main_rect = canvas.create_rectangle(
             x,
@@ -113,6 +120,36 @@ class Node(Draggable, Connectible, Selectable, Removable):
         """
         self._output_connectors.remove(connector)
 
+    # ---------------------- TARGETABLE -------------------------- #
+
+    def turn_highlight_on(self):
+        """Put highlight to the item.
+        """
+        self._canvas.itemconfigure(
+            self._main_rect,
+            outline=self.COLOR_MARKED,
+            width=3,
+            dash=(30,)
+        )
+
+    def turn_highlight_off(self):
+        """Remove highlight to the item.
+        """
+        self._canvas.itemconfigure(
+            self._main_rect,
+            outline='black',
+            width=2,
+            dash=()
+        )
+
+    def is_already_connected_with(self, source: Connectible):
+        """Check, if the item is already connected with the source.
+        """
+        for connector in self._input_connectors:
+            if connector.source == source:
+                return True
+        return False
+
     # ---------------------- DRAGGABLE -------------------------- #
 
     def move(self, delta_x: int, delta_y: int):
@@ -131,7 +168,7 @@ class Node(Draggable, Connectible, Selectable, Removable):
         """
         self._canvas.itemconfigure(
             self._main_rect,
-            outline='cyan',
+            outline=self.COLOR_SELECTED,
             width=3,
             dash=(30,)
         )
@@ -146,7 +183,7 @@ class Node(Draggable, Connectible, Selectable, Removable):
             width=3,
             fill=self._gamma.value.secondary_color,
             outline=self._gamma.value.main_color,
-            tags=self._node_tags
+            tags=self._node_tags + (Ability.CONNECT_SOURCE, )
         )
         self._canvas.tag_raise(self._id)
 
